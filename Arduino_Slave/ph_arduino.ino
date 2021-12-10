@@ -198,40 +198,31 @@ void receiveEvent()
     }
 }
 
-void sendToArduino(char type, )
+void sendToArduinoFloat(char type, float value)
+{
+    char buf[SIZE + 1];
+    String temp = type + String(value, 1) + "\n";
+    temp.toCharArray(buf, SIZE + 1);
+    Wire.write(buf);
+}
+
+void sendToArduinoInt(char type, float value)
+{
+    char buf[SIZE + 1];
+    String temp = type + String(value) + "\n";
+    temp.toCharArray(buf, SIZE + 1);
+    Wire.write(buf);
+}
 
 // slave sender
 void requestEvent()
 {
-    char temp1[SIZE + 1]; // send temperature
-    String stemp1 = "0" + String(temperature, 1) + "\n";
-    stemp1.toCharArray(temp1, SIZE + 1);
-    Wire.write(temp1);
-
-    char temp2[SIZE + 1]; // send ph
-    String stemp2 = "1" + String(phValue, 1) + "\n";
-    stemp2.toCharArray(temp2, SIZE + 1);
-    Wire.write(temp2);
-
-    char temp3[SIZE + 1]; // send stirring
-    String stemp3 = "2" + String(motorStirSpeed, 1) + "\n";
-    stemp3.toCharArray(temp3, SIZE + 1);
-    Wire.write(temp3);
-
-    char temp4[SIZE + 1]; // send heating system status
-    String stemp4 = "6" + String(heatstatus, 1) + "\n";
-    stemp4.toCharArray(temp4, SIZE + 1);
-    Wire.write(temp4);
-
-    char temp5[SIZE + 1]; // send ph system status
-    String stemp5 = "7" + String(phstatus, 1) + "\n";
-    stemp5.toCharArray(temp5, SIZE + 1);
-    Wire.write(temp5);
-
-    char temp6[SIZE + 1]; // send stirring system status
-    String stemp6 = "8" + String(stirringstatus, 1) + "\n";
-    stemp6.toCharArray(temp6, SIZE + 1);
-    Wire.write(temp6);
+    sendToArduinoFloat('0', temperature);
+    sendToArduinoFloat('1', phValue);
+    sendToArduinoInt('2', motorStirSpeed);
+    sendToArduinoInt('6', heatstatus);
+    sendToArduinoInt('7', phstatus);
+    sendToArduinoInt('8', stirringstatus);
 }
 
 void loop()
