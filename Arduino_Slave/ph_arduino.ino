@@ -12,7 +12,7 @@ const int Heater = 9;
 const int lightsen = A2;
 const int Motor = 10;
 
-int phInput = 0; // initialise the pins
+int phInput = 0;
 float phValue = 0;
 int tempIn = 0;
 float temperature = 0;
@@ -40,11 +40,11 @@ double motorStirSpeed;
 
 int lastTime = 0;
 
-float desiredTemperature = 30; // initialise  desired values
+float desiredTemperature = 30;
 float desiredPH;
 int desiredStirring;
 
-int heatstatus = 0; // initialise status of subsystem
+int heatstatus = 0;
 int stirringstatus = 0;
 int phstatus = 0;
 
@@ -148,7 +148,7 @@ void setup()
             tempsensorMin = tempIn;
         }
 
-        //    // make sure that the stir sensor is positioned over the white bit
+        // make sure that the stir sensor is positioned over the white bit
         //    stirThreshold = stirIn;
 
         // Auto threshold
@@ -175,34 +175,30 @@ void setup()
 void receiveEvent()
 {
     String receive = "";
-    int getvalue;
-    int i, j, k;
-    char type;
-    String svalue = "";
     while (Wire.available())
     {
         char c = Wire.read();
         receive += c;
     }
+
+    char type;
     type = receive[0]; // get desired temperature
+    String svalue = receive.substring(1);
     if (type == "3")
     {
-        svalue = receive.substring(1);
         desiredTemperature = svalue.toFloat();
     }
-
-    if (type == "4")
-    { // get desired PH
-        svalue = receive.substring(1);
+    else if (type == "4")
+    {
         desiredPH = svalue.toFloat();
     }
-
-    if (type == "5")
-    { // get desired stirring
-        svalue = receive.substring(1);
+    else if (type == "5")
+    {
         desiredStirring = svalue.toInt();
     }
 }
+
+void sendToArduino(char type, )
 
 // slave sender
 void requestEvent()
