@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Applications/Arduino.app/Contents/Java/libraries/**",
+                "/Users/plzfday/Documents/Arduino/libraries/**",
+                "/Users/plzfday/Library/Arduino15/packages/esp32/tools/**",
+                "/Users/plzfday/Library/Arduino15/packages/esp32/hardware/esp32/2.0.0/**"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ],
+    "version": 4
+}
