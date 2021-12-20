@@ -13,7 +13,7 @@
 #define BYTE_SIZE 16
 
 #define EAP_IDENTITY "username@ucl.ac.uk"
-#define EAP_PASSWORD "CSEEE17"
+#define EAP_PASSWORD "typepassword"
 
 #define TOKEN "ESP32ANG"
 #define THINGSBOARD_SERVER "demo.thingsboard.io"
@@ -35,23 +35,23 @@ bool subscribed = false;
 
 float curPH = 6.6f;
 float curTemperature = 30.0f;
-int curRPM = 750;
+float curRPM = 750.0f;
 
 RPC_Response processGetRPM(const RPC_Data &data)
 {
-    //    Serial.println("RPM get value method");
+    //        Serial.println("RPM get value method");
 
     return RPC_Response(NULL, curRPM);
 }
 
 RPC_Response processSetTemperature(const RPC_Data &data)
 {
-    //    Serial.println("Temperature set value method");
+    //        Serial.println("Temperature set value method");
 
     curTemperature = data;
 
-    //    Serial.print("Set new Temperature: ");
-    //    Serial.println(curTemperature);
+    //        Serial.print("Set new Temperature: ");
+    //        Serial.println(curTemperature);
     char buf[BYTE_SIZE];
     String Temp_to_send = "3" + String(curTemperature, 1);
     Temp_to_send.toCharArray(buf, BYTE_SIZE);
@@ -64,12 +64,12 @@ RPC_Response processSetTemperature(const RPC_Data &data)
 
 RPC_Response processSetPH(const RPC_Data &data)
 {
-    //    Serial.println("PH set value method");
+    //        Serial.println("PH set value method");
 
     curPH = data;
 
-    //    Serial.print("Set new PH: ");
-    //    Serial.println(curPH);
+    //        Serial.print("Set new PH: ");
+    //        Serial.println(curPH);
     char buf[BYTE_SIZE];
     String PH_to_send = "4" + String(curPH, 1);
     PH_to_send.toCharArray(buf, BYTE_SIZE);
@@ -89,14 +89,14 @@ RPC_Response processGetPH(const RPC_Data &data)
 
 RPC_Response processSetRPM(const RPC_Data &data)
 {
-    //    Serial.println("RPM set value method");
+    //        Serial.println("RPM set value method");
 
     curRPM = data;
 
-    //    Serial.print("Set new RPM: ");
-    //    Serial.println(curRPM);
+    //        Serial.print("Set new RPM: ");
+    //        Serial.println(curRPM);
     char buf[BYTE_SIZE];
-    String RPM_to_send = "5" + String(curRPM);
+    String RPM_to_send = "5" + String(curRPM, 1);
     RPM_to_send.toCharArray(buf, BYTE_SIZE);
     Wire.beginTransmission(SLAVE_ADDR);
     Wire.write(buf);
@@ -107,7 +107,7 @@ RPC_Response processSetRPM(const RPC_Data &data)
 
 RPC_Response processGetTemperature(const RPC_Data &data)
 {
-    //    Serial.println("Temperature get value method");
+    //        Serial.println("Temperature get value method");
 
     return RPC_Response(NULL, curTemperature);
 }
@@ -138,21 +138,27 @@ void parseAndSendData(String text)
     }
     else if (code == '2')
     {
-        int value = sValue.toInt();
-        tb.sendTelemetryInt("RPM", value);
+        float value = sValue.toFloat();
+        tb.sendTelemetryFloat("RPM", value);
     }
     else if (code == '6')
     {
+        Serial.print("Temperature Status ");
+        Serial.println(sValue.toInt());
         bool value = sValue.toInt() ? true : false;
         tb.sendAttributeBool("status_temperature", value);
     }
     else if (code == '7')
     {
+        Serial.print("pH Status ");
+        Serial.println(sValue.toInt());
         bool value = sValue.toInt() ? true : false;
         tb.sendAttributeBool("status_pH", value);
     }
     else if (code == '8')
     {
+        Serial.print("RPM Status ");
+        Serial.println(sValue.toInt());
         bool value = sValue.toInt() ? true : false;
         tb.sendAttributeBool("status_RPM", value);
     }
@@ -305,6 +311,7 @@ void loop()
             received_string += c;
         }
     }
+    parseAndSendData(received_string);
 
     tb.loop();
     delay(1000);

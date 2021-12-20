@@ -12,15 +12,17 @@ const int Heater = 9;
 const int lightsen = A2;
 const int Motor = 10;
 
-int phInput = 0;
+int phInput = 0; // initialise the pins
 float phValue = 0;
 int tempIn = 0;
+
 float temperature = 0;
 float R1 = 10000; // connect this resistor with thermistor in series
 float logR2, R2, T;
 float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
 int stirIn = 0;
 int stirrate = 0;
+
 int phsensorMin = 1023;
 int phsensorMax = 0;
 int tempsensorMin = 1023;
@@ -40,11 +42,11 @@ double motorStirSpeed;
 
 int lastTime = 0;
 
-float desiredTemperature = 30;
+float desiredTemperature; // initialise  desired values
 float desiredPH;
-int desiredStirring;
+float desiredStirring;
 
-int heatstatus = 0;
+int heatstatus = 0; // initialise status of subsystem
 int stirringstatus = 0;
 int phstatus = 0;
 
@@ -101,24 +103,25 @@ void setup()
 
     // Init the PID controls
     memset(&temperatureControl, 0, sizeof(temperatureControl));
-    temperatureControl.ki = 1.0;
-    temperatureControl.kd = 1.0;
-    temperatureControl.kp = 1.0;
+    temperatureControl.ki = 0.5;
+    temperatureControl.kd = 0.5;
+    temperatureControl.kp = 0.5;
 
     memset(&PHControl, 0, sizeof(PHControl));
-    PHControl.ki = 1.0;
-    PHControl.kd = 1.0;
-    PHControl.kp = 1.0;
+    PHControl.ki = 0.5;
+    PHControl.kd = 0.5;
+    PHControl.kp = 0.5;
 
     memset(&StirringControl, 0, sizeof(StirringControl));
-    StirringControl.ki = 1.0;
-    StirringControl.kd = 1.0;
-    StirringControl.kp = 1.0;
+    StirringControl.ki = 0.5;
+    StirringControl.kd = 0.5;
+    StirringControl.kp = 0.5;
 
     // initialize connectivity
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
 
+    analogWrite(Motor, 50);
     while (millis() < 5000)
     {
         // calibration loop
@@ -148,7 +151,7 @@ void setup()
             tempsensorMin = tempIn;
         }
 
-        // make sure that the stir sensor is positioned over the white bit
+        //    // make sure that the stir sensor is positioned over the white bit
         //    stirThreshold = stirIn;
 
         // Auto threshold
@@ -163,7 +166,7 @@ void setup()
         }
     }
 
-    analogWrite(Motor, 100);
+    analogWrite(Motor, 0);
 
     lastTime = millis();
     temperatureControl.lastTime = lastTime;
@@ -184,19 +187,27 @@ void receiveEvent()
     char type;
     type = receive[0]; // get desired temperature
     String svalue = receive.substring(1);
-    if (type == "3")
+    //  Serial.print("Type:");
+    //  Serial.print(type);
+    //  Serial.print(" Svalue:");
+    //  Serial.print(svalue);
+    //  Serial.print(" Conversion:");
+    //  Serial.print(svalue.toFloat());
+    //  Serial.println("\n==============");
+    if (type == '3')
     {
         desiredTemperature = svalue.toFloat();
     }
-    else if (type == "4")
+    else if (type == '4')
     {
         desiredPH = svalue.toFloat();
     }
-    else if (type == "5")
+    else if (type == '5')
     {
-        desiredStirring = svalue.toInt();
+        desiredStirring = svalue.toFloat();
     }
 }
+// slave sender
 
 void sendToArduinoFloat(char type, float value)
 {
@@ -206,20 +217,20 @@ void sendToArduinoFloat(char type, float value)
     Wire.write(buf);
 }
 
-void sendToArduinoInt(char type, float value)
+void sendToArduinoInt(char type, int value)
 {
     char buf[SIZE + 1];
     String temp = type + String(value) + "\n";
+    Serial.println(temp);
     temp.toCharArray(buf, SIZE + 1);
     Wire.write(buf);
 }
 
-// slave sender
 void requestEvent()
 {
     sendToArduinoFloat('0', temperature);
     sendToArduinoFloat('1', phValue);
-    sendToArduinoInt('2', motorStirSpeed);
+    sendToArduinoFloat('2', motorStirSpeed);
     sendToArduinoInt('6', heatstatus);
     sendToArduinoInt('7', phstatus);
     sendToArduinoInt('8', stirringstatus);
@@ -229,17 +240,11 @@ void loop()
 {
     int currentTime = millis();
 
-    // data transfer init
-    // Wire.beginTransmission(MASTER_ADDRESS);
-    // char msg[8];
-    //  sprintf(msg, "0%lf", temperature);
-    // Wire.endTransmission();
-
     // get input from different sensors
     phInput = analogRead(phPin);
-    phInput = constrain(phInput, phsensorMin, phsensorMax);
-    // phValue=7-(2.5-phInput)*
-    // phValue = map(phInput,phsensorMin,phsensorMax,0,14);
+    phValue = map(phInput - 245, 90, -90, 1, 13);
+//    float Voltage = phInput * (5 / 1023);
+//    phValue = 7; // we should put the linear relationship here
 
     tempIn = analogRead(Thermistor);
     R2 = R1 * (1023.0 / (float)tempIn - 1.0);
@@ -250,7 +255,7 @@ void loop()
     // Stirring speed detection
     stirIn = analogRead(lightsen);
     int sensorstate_1 = analogRead(lightsen);
-    delay(5);
+    delay(2);
     int sensorstate_2 = analogRead(lightsen);
     if (sensorstate_1 > 100)
     {
@@ -281,16 +286,25 @@ void loop()
         //   Serial.println(previousTime);
     }
 
+//     desiredTemperature=37.5;              //delete this when using
+//     desiredStirring=500;
+//     desiredPH=6.6;
+
     // Control different subsystems
     if (phValue < desiredPH)
     { // increase the ph
         update_pid(&PHControl, phValue, desiredPH);
         double phoutput = get_value(&PHControl);
+        if (phoutput >= 255)
+        {
+            phoutput = 255;
+        }
         analogWrite(Base, phoutput);
         phstatus = 1;
     }
     else
     {
+        analogWrite(Base, 0);
         phstatus = 0;
     }
 
@@ -298,50 +312,65 @@ void loop()
     { // lower the ph
         update_pid(&PHControl, phValue, desiredPH);
         double phoutput = get_value(&PHControl);
+        if (phoutput >= 255)
+        {
+            phoutput = 255;
+        }
         analogWrite(Acid, phoutput);
         phstatus = 1;
     }
     else
     {
+        analogWrite(Acid, 0);
         phstatus = 0;
     }
 
-    if (temperature < desiredTemperature)
+    if (temperature < desiredTemperature-0.3)
     { // heating if temperature is low
-        update_pid(&temperatureControl, tempIn, desiredTemperature);
+        update_pid(&temperatureControl, temperature, desiredTemperature);
         double heatoutput = get_value(&temperatureControl);
+        if (heatoutput >= 255)
+        {
+            heatoutput = 255;
+        }
         analogWrite(Heater, heatoutput);
         heatstatus = 1;
     }
     else
     {
+        analogWrite(Heater, 0);
         heatstatus = 0;
     }
 
-    if (motorStirSpeed != 500.0)
+    if ((motorStirSpeed < (desiredStirring-20))||(motorStirSpeed >(desiredStirring+20)))
     {
         update_pid(&StirringControl, motorStirSpeed, desiredStirring);
         double stirringoutput = get_value(&StirringControl);
+        if (stirringoutput >= 255)
+        {
+            stirringoutput = 255;
+        }
         analogWrite(Motor, stirringoutput); // the Motor should have desired speed written to it
         stirringstatus = 1;
     }
-    else
+   else
     {
         stirringstatus = 0;
     }
 
-    // Monitor
-    String stringph = "current PH is: ";
-    String prinph = stringph + phValue;
-    String stringtem = "current temperature is: ";
-    String printem = stringtem + temperature;
-    String stringrpm = "current RPM is: ";
-    String prinrpm = stringrpm + motorStirSpeed;
-    Serial.println(prinph);
-    Serial.println(printem);
-    Serial.println(prinrpm);
-
-    Serial.println(desiredTemperature);
+//     Monitor
+      String stringph = "current PH is: ";
+      String prinph = stringph + phValue;
+      String stringtem = "current temperature is: ";
+      String printem = stringtem + temperature;
+      String stringrpm = "current RPM is: ";
+      String prinrpm = stringrpm + motorStirSpeed;
+      Serial.println(prinph);
+      Serial.println(printem);
+      Serial.println(prinrpm);
+      Serial.println(desiredStirring);
+      Serial.println(desiredTemperature);
+      Serial.println(desiredPH);
 
     lastTime = currentTime;
 }
